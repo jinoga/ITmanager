@@ -1,0 +1,37 @@
+
+> it-service-desk@0.1.0 build
+> prisma generate && next build
+
+
+✔ Generated Prisma Client (v7.3.0) to .\node_modules\@prisma\client in 205ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 5.1s
+  Running TypeScript ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/5) ...
+  Generating static pages using 3 workers (1/5) 
+  Generating static pages using 3 workers (2/5) 
+  Generating static pages using 3 workers (3/5) 
+✓ Generating static pages using 3 workers (5/5) in 241.8ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /admin
+├ ƒ /api/master-data
+├ ƒ /api/stats
+├ ƒ /api/tickets
+├ ƒ /api/tickets/[id]
+└ ○ /_not-found
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
