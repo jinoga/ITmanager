@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Ticket {
+  id          String   @id @default(cuid())
+  jobId       String   @unique // The human-readable ID like JOB-2024...
+  createdAt   DateTime @default(now())
+  requester   String
+  branch      String
+  dept        String
+  assetType   String
+  assetName   String
+  issue       String
+  status      String   @default("รอดำเนินการ")
+  imageUrl    String?
+  pdfUrl      String?
+  tech        String?
+  shop        String?
+  sentDate    String?
+  returnDate  String?
+  result      String?
+  cost        Float?   @default(0)
+  note        String?
+  receiptUrl  String?
+
+  @@index([status])
+  @@index([jobId])
+}
+
+model MasterData {
+  id        String   @id @default(cuid())
+  type      String   // branch, dept, asset, shop, tech
+  value     String
+  isActive  Boolean  @default(true)
+
+  @@index([type])
+}
