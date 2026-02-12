@@ -11,7 +11,11 @@ import {
     X,
     Loader2,
     Home,
+    Download,
+    Printer,
+    LogOut,
 } from "lucide-react";
+import Link from "next/link";
 
 type Ticket = {
     id: string;
@@ -131,6 +135,44 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleLogout = async () => {
+        await fetch("/api/auth", { method: "DELETE" });
+        window.location.href = "/admin/login";
+    };
+
+    const exportToCSV = () => {
+        if (tickets.length === 0) return;
+
+        const headers = ["Job ID", "Requester", "Branch", "Dept", "Asset", "Issue", "Status", "Tech", "Cost", "Date"];
+        const rows = tickets.map(t => [
+            t.jobId,
+            t.requester,
+            t.branch,
+            t.dept,
+            t.assetName,
+            t.issue.replace(/,/g, " "),
+            t.status,
+            t.tech || "",
+            t.cost || 0,
+            formatDate(t.createdAt)
+        ]);
+
+        const csvContent = "\uFEFF" + [headers, ...rows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `it-tickets-${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handlePrint = () => {
+        window.print();
+    };
+
     const formatDate = (dateStr: string) => {
         return new Date(dateStr).toLocaleDateString("th-TH", {
             year: "numeric",
@@ -159,10 +201,10 @@ export default function AdminDashboard() {
                         <BarChart3 className="w-5 h-5" />
                         รายงานสถิติ
                     </a>
-                    <a href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 rounded-xl transition-all">
+                    <Link href="/admin/master-data" className="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 rounded-xl transition-all">
                         <Database className="w-5 h-5" />
                         จัดการ Master Data
-                    </a>
+                    </Link>
                     <a href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 rounded-xl transition-all">
                         <Settings className="w-5 h-5" />
                         ตั้งค่าระบบ
@@ -179,10 +221,13 @@ export default function AdminDashboard() {
                 <div className="p-6 border-t border-slate-800">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">A</div>
-                        <div className="text-sm">
+                        <div className="text-sm flex-1">
                             <p className="text-white font-semibold">Admin User</p>
                             <p className="text-xs text-slate-500">IT Specialist</p>
                         </div>
+                        <button onClick={handleLogout} className="text-slate-500 hover:text-red-400 p-2 transition-colors cursor-pointer">
+                            <LogOut className="w-5 h-5" />
+                        </button>
                     </div>
                 </div>
             </aside>
@@ -210,6 +255,14 @@ export default function AdminDashboard() {
                             className="bg-blue-600 text-white px-6 py-2 rounded-xl font-semibold shadow-lg shadow-blue-100 hover:bg-blue-700 cursor-pointer"
                         >
                             ค้นหา
+                        </button>
+                        <button
+                            onClick={exportToCSV}
+                            type="button"
+                            className="bg-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow-lg shadow-emerald-100 hover:bg-emerald-700 cursor-pointer flex items-center gap-2"
+                        >
+                            <Download className="w-4 h-4" />
+                            Excel
                         </button>
                     </form>
                 </header>
@@ -309,9 +362,18 @@ export default function AdminDashboard() {
                                 <h2 className="text-xl font-extrabold text-slate-900">{selectedTicket.jobId}</h2>
                                 <p className="text-slate-500 text-sm">{selectedTicket.requester} — {selectedTicket.branch}</p>
                             </div>
-                            <button onClick={() => setSelectedTicket(null)} className="text-slate-400 hover:text-slate-900 cursor-pointer">
-                                <X className="w-6 h-6" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handlePrint}
+                                    className="p-2 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all cursor-pointer"
+                                    title="พิมพ์ใบงาน"
+                                >
+                                    <Printer className="w-6 h-6" />
+                                </button>
+                                <button onClick={() => setSelectedTicket(null)} className="text-slate-400 hover:text-slate-900 cursor-pointer p-2 rounded-lg hover:bg-slate-100 transition-all">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="mb-4 p-4 bg-slate-50 rounded-xl">

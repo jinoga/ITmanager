@@ -22,6 +22,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Load master data on mount
   useEffect(() => {
@@ -80,12 +82,27 @@ export default function Home() {
     setSuccess(null);
 
     try {
+      let imageUrl = "";
+      if (imageFile) {
+        setUploading(true);
+        const formData = new FormData();
+        formData.append("file", imageFile);
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadRes.ok) imageUrl = uploadData.url;
+        setUploading(false);
+      }
+
       const res = await fetch("/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
           assetName: form.assetType,
+          imageUrl,
         }),
       });
 
@@ -102,6 +119,7 @@ export default function Home() {
         issue: "",
         assetName: "",
       }));
+      setImageFile(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "ไม่สามารถบันทึกข้อมูลได้");
     } finally {
@@ -217,11 +235,19 @@ export default function Home() {
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">รูปภาพประกอบ (Optional)</label>
-              <div className="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer group">
+              <label className="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer group block">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                />
                 <Camera className="w-8 h-8 mx-auto text-slate-400 group-hover:text-blue-500 mb-2" />
-                <p className="text-slate-500 group-hover:text-blue-600 font-medium">คลิกเพื่ออัปโหลด หรือลากไฟล์มาวางที่นี่</p>
+                <p className="text-slate-500 group-hover:text-blue-600 font-medium">
+                  {imageFile ? `ไฟล์ที่เลือก: ${imageFile.name}` : "คลิกเพื่ออัปโหลดรูปภาพ"}
+                </p>
                 <p className="text-xs text-slate-400 mt-1">รองรับ JPG, PNG (สูงสุด 5MB)</p>
-              </div>
+              </label>
             </div>
 
             <button
@@ -229,10 +255,10 @@ export default function Home() {
               disabled={loading}
               className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:shadow-blue-300 active:scale-[0.98] transition-all text-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading ? (
+              {loading || uploading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  กำลังบันทึก...
+                  {uploading ? "กำลังอัปโหลดรูปภาพ..." : "กำลังบันทึก..."}
                 </>
               ) : (
                 "บันทึกข้อมูลและส่งแจ้งซ่อม"
