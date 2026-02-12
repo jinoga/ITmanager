@@ -24,23 +24,27 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [settings, setSettings] = useState<Record<string, string>>({});
 
   // Load master data on mount
   useEffect(() => {
     async function loadMasterData() {
       try {
-        const [branchRes, deptRes, assetRes] = await Promise.all([
+        const [branchRes, deptRes, assetRes, settingsRes] = await Promise.all([
           fetch("/api/master-data?type=branch"),
           fetch("/api/master-data?type=dept"),
           fetch("/api/master-data?type=asset"),
+          fetch("/api/settings"),
         ]);
         const branchData = await branchRes.json();
         const deptData = await deptRes.json();
         const assetData = await assetRes.json();
+        const settingsData = await settingsRes.json();
 
         setBranches(Array.isArray(branchData) ? branchData : []);
         setDepartments(Array.isArray(deptData) ? deptData : []);
         setAssetTypes(Array.isArray(assetData) ? assetData : []);
+        if (settingsData && !settingsData.error) setSettings(settingsData);
 
         // Set default values
         if (Array.isArray(branchData) && branchData.length > 0) setForm(f => ({ ...f, branch: branchData[0].value }));
@@ -134,7 +138,7 @@ export default function Home() {
           <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-200">
             <Wrench className="text-white w-6 h-6" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-800">IT Manager Pro</span>
+          <span className="text-xl font-bold tracking-tight text-slate-800">{settings.system_name || "IT Manager Pro"}</span>
         </div>
         <div className="flex gap-4">
           <a href="/admin" className="bg-slate-900 text-white px-5 py-2 rounded-full font-semibold shadow-xl shadow-slate-200 hover:scale-105 transition-transform">
@@ -145,8 +149,8 @@ export default function Home() {
 
       <main className="max-w-3xl mx-auto mt-12 px-6 pb-20">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">ยินดีต้อนรับสู่ IT Service Desk</h1>
-          <p className="text-slate-500 text-lg">เราพร้อมดูแลอุปกรณ์และระบบของคุณให้กลับมาทำงานได้ดีที่สุด</p>
+          <h1 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">ยินดีต้อนรับสู่ {settings.system_name || "IT Service Desk"}</h1>
+          <p className="text-slate-500 text-lg">{settings.org_name || "เราพร้อมดูแลอุปกรณ์และระบบของคุณให้กลับมาทำงานได้ดีที่สุด"}</p>
         </div>
 
         {/* Success Message */}

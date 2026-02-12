@@ -73,20 +73,24 @@ export default function AdminDashboard() {
         note: "",
     });
     const [saving, setSaving] = useState(false);
+    const [settings, setSettings] = useState<Record<string, string>>({});
 
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
             const searchParam = searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : "";
-            const [ticketsRes, statsRes] = await Promise.all([
+            const [ticketsRes, statsRes, settingsRes] = await Promise.all([
                 fetch(`/api/tickets${searchParam}`),
                 fetch("/api/stats"),
+                fetch("/api/settings"),
             ]);
             const ticketsData = await ticketsRes.json();
             const statsData = await statsRes.json();
+            const settingsData = await settingsRes.json();
 
             setTickets(Array.isArray(ticketsData) ? ticketsData : []);
             if (statsData && !statsData.error) setStats(statsData);
+            if (settingsData && !settingsData.error) setSettings(settingsData);
         } catch {
             // Keep empty state
         } finally {
@@ -189,7 +193,7 @@ export default function AdminDashboard() {
                     <div className="bg-blue-600 p-1.5 rounded-lg">
                         <LayoutDashboard className="text-white w-5 h-5" />
                     </div>
-                    <span className="text-white font-bold text-lg tracking-tight">IT Admin</span>
+                    <span className="text-white font-bold text-lg tracking-tight truncate">{settings.system_name || "IT Admin"}</span>
                 </div>
 
                 <nav className="flex-1 px-4 py-4 space-y-1">
@@ -205,10 +209,10 @@ export default function AdminDashboard() {
                         <Database className="w-5 h-5" />
                         จัดการ Master Data
                     </Link>
-                    <a href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 rounded-xl transition-all">
+                    <Link href="/admin/settings" className="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 rounded-xl transition-all">
                         <Settings className="w-5 h-5" />
                         ตั้งค่าระบบ
-                    </a>
+                    </Link>
                 </nav>
 
                 <div className="p-4 border-t border-slate-800">

@@ -12,7 +12,13 @@ async function getPrisma() {
 async function generateJobId(): Promise<string> {
     const prisma = await getPrisma();
     const year = new Date().getFullYear();
-    const prefix = `JOB${year}-`;
+
+    // Get prefix from settings
+    const prefixConfig = await prisma.systemConfig.findUnique({
+        where: { key: "job_id_prefix" },
+    });
+    const prefixStr = prefixConfig?.value || "JOB";
+    const prefix = `${prefixStr}${year}-`;
 
     const lastTicket = await prisma.ticket.findFirst({
         where: { jobId: { startsWith: prefix } },
@@ -22,7 +28,7 @@ async function generateJobId(): Promise<string> {
     let nextNumber = 1;
     if (lastTicket) {
         const lastNumber = parseInt(lastTicket.jobId.replace(prefix, ""), 10);
-        nextNumber = lastNumber + 1;
+        nextNumber = isNaN(lastNumber) ? 1 : lastNumber + 1;
     }
 
     return `${prefix}${String(nextNumber).padStart(4, "0")}`;
