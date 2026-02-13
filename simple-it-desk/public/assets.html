@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset Management - IT Service Desk</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+
+        h1 {
+            color: #1a73e8;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa;
+        }
+
+        input,
+        select {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+            margin-right: 5px;
+        }
+
+        .btn-primary {
+            background-color: #1a73e8;
+        }
+
+        .btn-danger {
+            background-color: #ea4335;
+        }
+
+        .nav {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: #5f6368;
+            font-weight: bold;
+        }
+
+        .nav a.active {
+            color: #1a73e8;
+            border-bottom: 2px solid #1a73e8;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="nav">
+        <a href="/">🏠 หน้าแจ้งซ่อม</a>
+        <a href="/admin.html">🔧 Admin Console</a>
+        <a href="/assets.html" class="active">💻 ทรัพย์สิน (Assets)</a>
+        <a href="/inventory.html">📦 วัสดุสิ้นเปลือง</a>
+        <a href="/kb.html">📚 คู่มือ (KB)</a>
+        <a href="/pm.html">📅 แผนบำรุงรักษา (PM)</a>
+    </div>
+
+    <h1>💻 จัดการทรัพย์สินสารสนเทศ</h1>
+
+    <div class="card">
+        <h2>เพิ่มอุปกรณ์ใหม่</h2>
+        <form id="addAssetForm" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <input type="text" id="name" placeholder="ชื่อเครื่อง / รุ่น" required style="flex: 1;">
+            <select id="type">
+                <option value="PC">PC</option>
+                <option value="Laptop">Laptop</option>
+                <option value="Printer">Printer</option>
+                <option value="Network">Network</option>
+                <option value="Other">อื่นๆ</option>
+            </select>
+            <input type="text" id="serial" placeholder="Serial Number" required style="flex: 1;">
+            <input type="text" id="user" placeholder="ผู้ใช้งาน / แผนก" required style="flex: 1;">
+            <button type="submit" class="btn btn-primary">➕ เพิ่ม</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>รายการทรัพย์สินทั้งหมด</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ประเภท</th>
+                    <th>ชื่อรุ่น / Model</th>
+                    <th>Serial Number</th>
+                    <th>ผู้ใช้งาน</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody id="assetTable"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001/api/assets';
+
+        // Check Auth using existing admin login
+        if (!localStorage.getItem('admin_logged_in')) {
+            window.location.href = '/login.html';
+        }
+
+        window.onload = loadAssets;
+
+        async function loadAssets() {
+            const res = await fetch(API_URL);
+            const json = await res.json();
+            const tbody = document.getElementById('assetTable');
+            tbody.innerHTML = '';
+
+            json.data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.id}</td>
+                    <td>${item.type}</td>
+                    <td><b>${item.name}</b></td>
+                    <td><span style="font-family: monospace;">${item.serial}</span></td>
+                    <td>${item.user}</td>
+                    <td><button class="btn btn-danger" onclick="deleteAsset(${item.id})">ลบ</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('addAssetForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('name').value,
+                type: document.getElementById('type').value,
+                serial: document.getElementById('serial').value,
+                user: document.getElementById('user').value
+            };
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            document.getElementById('addAssetForm').reset();
+            loadAssets();
+        });
+
+        async function deleteAsset(id) {
+            if (confirm('ลบรายการนี้?')) {
+                await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                loadAssets();
+            }
+        }
+    </script>
+</body>
+
+</html>

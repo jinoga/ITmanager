@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PM Schedule - IT Service Desk</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+
+        h1 {
+            color: #e91e63;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #fce4ec;
+        }
+
+        .done {
+            text-decoration: line-through;
+            color: #888;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            background-color: #e91e63;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .nav {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: #5f6368;
+            font-weight: bold;
+        }
+
+        .nav a.active {
+            color: #e91e63;
+            border-bottom: 2px solid #e91e63;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="nav">
+        <a href="/">🏠 หน้าแจ้งซ่อม</a>
+        <a href="/admin.html">🔧 Admin Console</a>
+        <a href="/assets.html">💻 ทรัพย์สิน (Assets)</a>
+        <a href="/inventory.html">📦 วัสดุสิ้นเปลือง</a>
+        <a href="/kb.html">📚 คู่มือ (KB)</a>
+        <a href="/pm.html" class="active">📅 แผนบำรุงรักษา (PM)</a>
+    </div>
+
+    <h1>📅 แผนการบำรุงรักษา (PM Schedule)</h1>
+
+    <div class="card">
+        <h2>เพิ่มแผนงานใหม่</h2>
+        <form id="addPmForm" style="display: flex; gap: 10px; align-items: center;">
+            <input type="date" id="date" required>
+            <input type="text" id="title" placeholder="รายการที่ต้องทำ (เช่น เป่าฝุ่น Server, ต่ออายุ Domain)" required
+                style="flex: 1;">
+            <button type="submit" class="btn">บันทึก</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>ตารางงานเร็วๆ นี้</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>วันที่กำหนด</th>
+                    <th>รายการ</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody id="pmTable"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001/api/pm';
+        if (!localStorage.getItem('admin_logged_in')) window.location.href = '/login.html';
+
+        window.onload = loadPm;
+
+        async function loadPm() {
+            const res = await fetch(API_URL);
+            const json = await res.json();
+            const tbody = document.getElementById('pmTable');
+            tbody.innerHTML = '';
+
+            json.data.forEach(item => {
+                const tr = document.createElement('tr');
+                const isDone = item.status === 'Done';
+                tr.innerHTML = `
+                    <td>${item.due_date}</td>
+                    <td class="${isDone ? 'done' : ''}">${item.title}</td>
+                    <td>${isDone ? '✅ เรียบร้อย' : '⏳ รอทำ'}</td>
+                    <td>
+                        <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleStatus(${item.id}, this.checked)">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('addPmForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                due_date: document.getElementById('date').value,
+                title: document.getElementById('title').value
+            };
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            document.getElementById('addPmForm').reset();
+            loadPm();
+        });
+
+        async function toggleStatus(id, checked) {
+            await fetch(`${API_URL}/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: checked ? 'Done' : 'Pending' })
+            });
+            loadPm();
+        }
+    </script>
+</body>
+
+</html>

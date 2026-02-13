@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - IT Service Desk</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+
+        h1 {
+            color: #d93025;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+            margin-right: 5px;
+        }
+
+        .btn-success {
+            background-color: #34a853;
+        }
+
+        .btn-danger {
+            background-color: #ea4335;
+        }
+
+        .btn-warning {
+            background-color: #fbbc04;
+            color: black;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+
+        .status-done {
+            background-color: #e8f5e9;
+            color: #1b5e20;
+        }
+
+        .status-rejected {
+            background-color: #ffebee;
+            color: #b71c1c;
+        }
+
+        .nav {
+            margin-bottom: 20px;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: #5f6368;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .nav a.active {
+            color: #1a73e8;
+            border-bottom: 2px solid #1a73e8;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="nav" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; gap: 15px;">
+            <a href="/">🏠 หน้าแจ้งซ่อม</a>
+            <a href="/admin.html" class="active">🔧 Admin Console</a>
+            <a href="/assets.html">💻 ทรัพย์สิน (Assets)</a>
+            <a href="/inventory.html">📦 วัสดุสิ้นเปลือง</a>
+            <a href="/kb.html">📚 คู่มือ (KB)</a>
+            <a href="/pm.html">📅 แผนบำรุงรักษา (PM)</a>
+        </div>
+        <button onclick="logout()"
+            style="background: none; border: none; color: #ea4335; cursor: pointer; font-weight: bold;">ออกจากระบบ
+            🚪</button>
+    </div>
+
+    <h1>👮 Admin Dashboard</h1>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2>จัดการงานซ่อมทั้งหมด</h2>
+            <div>
+                <button class="btn" style="background-color: #0f9d58;" onclick="exportToCSV()">📊 Export Excel</button>
+                <button class="btn btn-warning" onclick="loadTickets()">🔄 รีเฟรช</button>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ผู้แจ้ง / แผนก</th>
+                    <th>อาการ</th>
+                    <th>เวลาแจ้ง</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody id="ticketTableBody">
+                <!-- Data here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Check Auth
+        if (!localStorage.getItem('admin_logged_in')) {
+            window.location.href = '/login.html';
+        }
+
+        const API_URL = 'http://localhost:3001/api/tickets';
+
+        window.onload = loadTickets;
+
+        function logout() {
+            localStorage.removeItem('admin_logged_in');
+            window.location.href = '/login.html';
+        }
+
+        async function loadTickets() {
+            try {
+                const res = await fetch(API_URL);
+                const json = await res.json();
+                const tickets = json.data;
+
+                const tbody = document.getElementById('ticketTableBody');
+                tbody.innerHTML = '';
+
+                if (tickets.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">ยังไม่มีงานซ่อมเข้ามา</td></tr>';
+                    return;
+                }
+
+                tickets.forEach(t => {
+                    const tr = document.createElement('tr');
+
+                    let statusClass = 'status-pending';
+                    if (t.status === 'เสร็จสิ้น') statusClass = 'status-done';
+                    if (t.status === 'ยกเลิก') statusClass = 'status-rejected';
+
+                    tr.innerHTML = `
+                        <td>#${t.id}</td>
+                        <td>
+                            <strong>${t.requester}</strong><br>
+                            <span style="font-size: 12px; color: #666;">${t.dept}</span>
+                        </td>
+                        <td>${t.issue}</td>
+                        <td style="font-size: 13px;">${new Date(t.created_at).toLocaleString('th-TH')}</td>
+                        <td><span class="status-badge ${statusClass}">${t.status}</span></td>
+                        <td>
+                            ${t.status !== 'เสร็จสิ้น' ? `<button class="btn btn-success" onclick="updateStatus(${t.id}, 'เสร็จสิ้น')">✅ ซ่อมเสร็จ</button>` : ''}
+                            ${t.status !== 'ยกเลิก' ? `<button class="btn btn-warning" onclick="updateStatus(${t.id}, 'ยกเลิก')">⚠️ ยกเลิก</button>` : ''}
+                            <button class="btn btn-danger" onclick="deleteTicket(${t.id})">🗑️ ลบ</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error(err);
+                alert('โหลดข้อมูลไม่สำเร็จ');
+            }
+        }
+
+        async function updateStatus(id, newStatus) {
+            if (!confirm(`ยืนยันเปลี่ยนสถานะเป็น "${newStatus}"?`)) return;
+            try {
+                const res = await fetch(`${API_URL}/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (res.ok) loadTickets();
+            } catch (err) {
+                alert('เกิดข้อผิดพลาด');
+            }
+        }
+
+        async function deleteTicket(id) {
+            if (!confirm('ต้องการลบรายการนี้ใช่ไหม? (ไม่สามารถกู้คืนได้)')) return;
+            try {
+                const res = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+                if (res.ok) loadTickets();
+            } catch (err) {
+                alert('ลบไม่สำเร็จ');
+            }
+        }
+
+        function exportToCSV() {
+            const table = document.querySelector("table");
+            let csv = [];
+            const rows = table.querySelectorAll("tr");
+
+            for (let i = 0; i < rows.length; i++) {
+                let row = [], cols = rows[i].querySelectorAll("td, th");
+                for (let j = 0; j < cols.length - 1; j++) { // Skip last column (actions)
+                    let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, " ").replace(/,/g, " ");
+                    row.push(data);
+                }
+                csv.push(row.join(","));
+            }
+
+            const blob = new Blob(["\uFEFF" + csv.join("\n")], { type: "text/csv" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+            a.download = "it-tickets.csv";
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>

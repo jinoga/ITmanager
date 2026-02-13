@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Service Desk (Simple Version)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+
+        h1 {
+            color: #1a73e8;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #1a73e8;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #1557b0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa;
+        }
+
+        .status-pending {
+            color: #f57c00;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>IT Service Desk 🛠️</h1>
+        <div>
+            <a href="/kb.html" style="text-decoration: none; font-weight: bold; color: #1a73e8; margin-right: 15px;">📚
+                คู่มือแก้ปัญหา (KB)</a>
+            <a href="/admin.html" style="text-decoration: none; font-weight: bold; color: #5f6368;">🔧 เจ้าหน้าที่
+                (Admin)</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>แจ้งซ่อมอุปกรณ์</h2>
+        <form id="ticketForm">
+            <label>ชื่อผู้แจ้ง (Requester)</label>
+            <input type="text" id="requester" required placeholder="เช่น สมชาย ใจดี">
+
+            <label>แผนก (Department)</label>
+            <select id="dept">
+                <option value="IT">ไอที</option>
+                <option value="HR">บุคคล</option>
+                <option value="Account">บัญชี</option>
+                <option value="Sales">การขาย</option>
+            </select>
+
+            <label>อาการที่พบ (Issue)</label>
+            <textarea id="issue" rows="3" required placeholder="เช่น เปิดคอมไม่ติด, ปริ้นไม่ออก"></textarea>
+
+            <button type="submit">ส่งแจ้งซ่อม</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>รายการแจ้งซ่อมล่าสุด</h2>
+        <button onclick="loadTickets()" style="background-color: #34a853; margin-bottom: 10px;">🔄 รีเฟรชข้อมูล</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ผู้แจ้ง</th>
+                    <th>แผนก</th>
+                    <th>อาการ</th>
+                    <th>สถานะ</th>
+                </tr>
+            </thead>
+            <tbody id="ticketTableBody">
+                <!-- ข้อมูลจะถูกเติมที่นี่ -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001/api/tickets';
+
+        // Load tickets when page opens
+        window.onload = loadTickets;
+
+        document.getElementById('ticketForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const requester = document.getElementById('requester').value;
+            const dept = document.getElementById('dept').value;
+            const issue = document.getElementById('issue').value;
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requester, dept, issue })
+                });
+
+                if (res.ok) {
+                    alert('✅ บันทึกข้อมูลสำเร็จ!');
+                    document.getElementById('ticketForm').reset();
+                    loadTickets();
+                } else {
+                    alert('❌ เกิดข้อผิดพลาด');
+                }
+            } catch (err) {
+                alert('ไม่สามารถเชื่อมต่อ Server ได้');
+            }
+        });
+
+        async function loadTickets() {
+            try {
+                const res = await fetch(API_URL);
+                const json = await res.json();
+                const tickets = json.data;
+
+                const tbody = document.getElementById('ticketTableBody');
+                tbody.innerHTML = '';
+
+                if (tickets.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">ยังไม่มีข้อมูล</td></tr>';
+                    return;
+                }
+
+                tickets.forEach(t => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>#${t.id}</td>
+                        <td>${t.requester}</td>
+                        <td>${t.dept}</td>
+                        <td>${t.issue}</td>
+                        <td class="status-pending">${t.status}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+
+</html>
