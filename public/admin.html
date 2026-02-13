@@ -5,62 +5,154 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - IT Service Desk</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
-            font-family: sans-serif;
-            max-width: 1000px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f0f2f5;
+            color: #333;
         }
 
         h1 {
-            color: #d93025;
+            color: #1a73e8;
             display: flex;
             align-items: center;
             gap: 10px;
+            margin-bottom: 20px;
         }
 
-        .card {
+        .nav {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: #5f6368;
+            font-weight: 600;
+            margin-right: 20px;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .nav a:hover,
+        .nav a.active {
+            color: #1a73e8;
+        }
+
+        .nav a.active {
+            border-bottom: 2px solid #1a73e8;
+            padding-bottom: 2px;
+        }
+
+        /* Dashboard Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
             background: white;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #1a73e8;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Charts Section */
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Ticket Table */
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 15px;
         }
 
         th,
         td {
-            border: 1px solid #ddd;
-            padding: 12px;
+            padding: 15px;
             text-align: left;
+            border-bottom: 1px solid #eee;
         }
 
         th {
             background-color: #f8f9fa;
+            color: #5f6368;
+            font-weight: 600;
         }
 
+        /* Buttons & Badges */
         .btn {
-            padding: 6px 12px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            color: white;
-            margin-right: 5px;
+            font-size: 14px;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
         }
 
         .btn-success {
             background-color: #34a853;
+            color: white;
         }
 
         .btn-danger {
             background-color: #ea4335;
+            color: white;
         }
 
         .btn-warning {
@@ -68,11 +160,17 @@
             color: black;
         }
 
+        .btn-primary {
+            background-color: #1a73e8;
+            color: white;
+        }
+
         .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
+            padding: 6px 12px;
+            border-radius: 20px;
             font-size: 12px;
             font-weight: bold;
+            display: inline-block;
         }
 
         .status-pending {
@@ -90,22 +188,328 @@
             color: #b71c1c;
         }
 
-        .nav {
-            margin-bottom: 20px;
-        }
-
-        .nav a {
-            text-decoration: none;
-            color: #5f6368;
-            font-weight: bold;
-            margin-right: 15px;
-        }
-
-        .nav a.active {
-            color: #1a73e8;
-            border-bottom: 2px solid #1a73e8;
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
+</head>
+
+<body>
+
+    <div class="nav">
+        <div>
+            <a href="/">🏠 หน้าแจ้งซ่อม</a>
+            <a href="/admin.html" class="active">📊 Dashboard</a>
+            <a href="/assets.html">💻 ทรัพย์สิน</a>
+            <a href="/inventory.html">📦 สต็อก</a>
+            <a href="/pm.html">📅 PM</a>
+            <a href="/settings.html">⚙️ Master Data</a>
+        </div>
+        <button onclick="logout()"
+            style="background: none; border: none; color: #ea4335; cursor: pointer; font-weight: bold;">
+            ออกจากระบบ 🚪
+        </button>
+    </div>
+
+    <h1>🚀 Admin Dashboard</h1>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">งานทั้งหมด Today</div>
+            <div class="stat-value" id="stat-total">-</div>
+        </div>
+        <div class="stat-card" style="border-bottom: 4px solid #fbbc04;">
+            <div class="stat-label">รอดำเนินการ (Pending)</div>
+            <div class="stat-value" id="stat-pending" style="color: #fbbc04;">-</div>
+        </div>
+        <div class="stat-card" style="border-bottom: 4px solid #34a853;">
+            <div class="stat-label">เสร็จสิ้น (Done)</div>
+            <div class="stat-value" id="stat-done" style="color: #34a853;">-</div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-container">
+        <div class="chart-card">
+            <h3>📈 งานแยกตามแผนก</h3>
+            <canvas id="deptChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>📉 สถานะงานซ่อม</h3>
+            <canvas id="statusChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Ticket List -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>📋 รายการแจ้งซ่อมล่าสุด</h2>
+            <div>
+                <button class="btn btn-success" onclick="exportToCSV()">📊 Export Excel</button>
+                <button class="btn btn-primary" onclick="loadData()">🔄 Refresh Data</button>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ผู้แจ้ง / แผนก</th>
+                    <th>อาการที่พบ</th>
+                    <th>วันที่แจ้ง</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody id="ticketTableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // Auth Check
+        if (!localStorage.getItem('admin_logged_in')) window.location.href = '/login.html';
+        function logout() { localStorage.removeItem('admin_logged_in'); window.location.href = '/login.html'; }
+
+        const API_URL = '/api/tickets';
+        let deptChartInstance = null;
+        let statusChartInstance = null;
+
+        window.onload = loadData;
+
+        async function loadData() {
+            await Promise.all([loadStats(), loadTickets()]);
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+
+                // Update Cards
+                document.getElementById('stat-total').innerText = data.total;
+                document.getElementById('stat-pending').innerText = data.pending;
+                document.getElementById('stat-done').innerText = data.done;
+
+                // Update Charts
+                renderCharts(data);
+            } catch (err) { console.error("Stats Error:", err); }
+        }
+
+        async function loadTickets() {
+            try {
+                const res = await fetch(API_URL);
+                const json = await res.json();
+                const tickets = json.data;
+                const tbody = document.getElementById('ticketTableBody');
+                tbody.innerHTML = '';
+
+                if (tickets.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 30px; color: #888;">ยังไม่มีงานซ่อมเข้ามา 💤</td></tr>';
+                    return;
+                }
+
+                tickets.forEach(t => {
+                    const tr = document.createElement('tr');
+                    let statusClass = t.status === 'เสร็จสิ้น' ? 'status-done' : (t.status === 'ยกเลิก' ? 'status-rejected' : 'status-pending');
+
+                    tr.innerHTML = `
+                        <td><strong>#${t.id}</strong></td>
+                        <td>
+                            <div style="font-weight:bold;">${t.requester}</div>
+                            <div style="font-size:12px; color:#666;">${t.dept}</div>
+                        </td>
+                        <td>${t.issue}</td>
+                        <td style="font-size:13px; color:#666;">${new Date(t.created_at).toLocaleString('th-TH')}</td>
+                        <td><span class="status-badge ${statusClass}">${t.status}</span></td>
+                        <td>
+                            ${t.status !== 'เสร็จสิ้น' ? `<button class="btn btn-success" onclick="updateStatus(${t.id}, 'เสร็จสิ้น')">✅ จบงาน</button>` : ''}
+                            <button class="btn btn-danger" onclick="deleteTicket(${t.id})" style="padding: 6px 10px;">🗑️</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        function renderCharts(data) {
+            const ctxDept = document.getElementById('deptChart');
+            const ctxStatus = document.getElementById('statusChart');
+
+            // Destroy old charts if existing
+            if (deptChartInstance) deptChartInstance.destroy();
+            if (statusChartInstance) statusChartInstance.destroy();
+
+            // Prepare Data
+            const deptLabels = Object.keys(data.byDept);
+            const deptValues = Object.values(data.byDept);
+
+            // Dept Chart
+            deptChartInstance = new Chart(ctxDept, {
+                type: 'bar',
+                data: {
+                    labels: deptLabels,
+                    datasets: [{
+                        label: 'จำนวนงานซ่อม',
+                        data: deptValues,
+                        backgroundColor: '#4285f4',
+                        borderRadius: 5
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+            });
+
+            // Status Chart
+            statusChartInstance = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: ['รอดำเนินการ', 'เสร็จสิ้น'],
+                    datasets: [{
+                        data: [data.pending, data.done],
+                        backgroundColor: ['#fbbc04', '#34a853']
+                    }]
+                }
+            });
+        }
+
+        async function updateStatus(id, newStatus) {
+            if (!confirm(`ยืนยันเปลี่ยนสถานะเป็น "${newStatus}"?`)) return;
+            await fetch(`${API_URL}/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            loadData();
+        }
+
+        async function deleteTicket(id) {
+            if (!confirm('ต้องการลบรายการนี้?')) return;
+            await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+            loadData();
+        }
+
+        function exportToCSV() {
+            // Simplified CSV logic for brevity, same as before
+            const table = document.querySelector("table");
+            let csv = [];
+            const rows = table.querySelectorAll("tr");
+            for (let i = 0; i < rows.length; i++) {
+                let row = [], cols = rows[i].querySelectorAll("td, th");
+                for (let j = 0; j < cols.length - 1; j++) row.push(cols[j].innerText.replace(/(\r\n|\n|\r)/gm, " ").replace(/,/g, " "));
+                csv.push(row.join(","));
+            }
+            const blob = new Blob(["\uFEFF" + csv.join("\n")], { type: "text/csv" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = "it-tickets.csv";
+            document.body.appendChild(a); a.click();
+        }
+    </script>
+</body>
+
+</html>
+body {
+font-family: sans-serif;
+max-width: 1000px;
+margin: 0 auto;
+padding: 20px;
+background-color: #f0f2f5;
+}
+
+h1 {
+color: #d93025;
+display: flex;
+align-items: center;
+gap: 10px;
+}
+
+.card {
+background: white;
+padding: 20px;
+border-radius: 8px;
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+margin-bottom: 20px;
+}
+
+table {
+width: 100%;
+border-collapse: collapse;
+margin-top: 10px;
+}
+
+th,
+td {
+border: 1px solid #ddd;
+padding: 12px;
+text-align: left;
+}
+
+th {
+background-color: #f8f9fa;
+}
+
+.btn {
+padding: 6px 12px;
+border: none;
+border-radius: 4px;
+cursor: pointer;
+color: white;
+margin-right: 5px;
+}
+
+.btn-success {
+background-color: #34a853;
+}
+
+.btn-danger {
+background-color: #ea4335;
+}
+
+.btn-warning {
+background-color: #fbbc04;
+color: black;
+}
+
+.status-badge {
+padding: 4px 8px;
+border-radius: 12px;
+font-size: 12px;
+font-weight: bold;
+}
+
+.status-pending {
+background-color: #fff3e0;
+color: #e65100;
+}
+
+.status-done {
+background-color: #e8f5e9;
+color: #1b5e20;
+}
+
+.status-rejected {
+background-color: #ffebee;
+color: #b71c1c;
+}
+
+.nav {
+margin-bottom: 20px;
+}
+
+.nav a {
+text-decoration: none;
+color: #5f6368;
+font-weight: bold;
+margin-right: 15px;
+}
+
+.nav a.active {
+color: #1a73e8;
+border-bottom: 2px solid #1a73e8;
+}
+</style>
 </head>
 
 <body>

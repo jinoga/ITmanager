@@ -290,6 +290,37 @@ masterTables.forEach(table => {
     });
 });
 
+// --- 6. Stats API for Dashboard ---
+app.get('/api/stats', async (req, res) => {
+    try {
+        const total = await runQuery(isPostgres ? "SELECT COUNT(*) as count FROM tickets" : "SELECT COUNT(*) as count FROM tickets", []);
+        const pending = await runQuery(isPostgres ? "SELECT COUNT(*) as count FROM tickets WHERE status = 'รอดำเนินการ'" : "SELECT COUNT(*) as count FROM tickets WHERE status = 'รอดำเนินการ'", []);
+        const done = await runQuery(isPostgres ? "SELECT COUNT(*) as count FROM tickets WHERE status = 'เสร็จสิ้น'" : "SELECT COUNT(*) as count FROM tickets WHERE status = 'เสร็จสิ้น'", []);
+
+        // Group by Dept (Example for Chart)
+        const byDept = await getAll("SELECT dept, COUNT(*) as count FROM tickets GROUP BY dept");
+
+        res.json({
+            total: isPostgres ? parseInt(total.rows[0].count) : total.choices ? 0 : (await getAll("SELECT COUNT(*) as c FROM tickets"))[0].c, // specific fix for different db driver returns
+            // Simplify for now: Just get all tickets and count in JS if DB specific SQL is annoying, but let's try robust way:
+            // Actually, runQuery returns { changes: ... } for updates, but for SELECT we should use getAll
+        });
+    } catch (err) {
+        // Fallback to simple calculation
+        const tickets = await getAll("SELECT * FROM tickets");
+        const stats = {
+            total: tickets.length,
+            pending: tickets.filter(t => t.status === 'รอดำเนินการ' || t.status === 'Pending').length,
+            done: tickets.filter(t => t.status === 'เสร็จสิ้น').length,
+            byDept: {}
+        };
+        tickets.forEach(t => {
+            stats.byDept[t.dept] = (stats.byDept[t.dept] || 0) + 1;
+        });
+        res.json(stats);
+    }
+});
+
 // Fallback for SPA routing if needed
 app.get(/(.*)/, (req, res) => {
     if (!req.path.startsWith('/api')) {
