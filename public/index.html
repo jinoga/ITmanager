@@ -136,8 +136,35 @@
     <script>
         const API_URL = '/api/tickets';
 
-        // Load tickets when page opens
-        window.onload = loadTickets;
+        window.onload = function () {
+            loadTickets();
+            loadDepartments();
+        };
+
+        async function loadDepartments() {
+            try {
+                const res = await fetch('/api/master/departments');
+                const json = await res.json();
+                const select = document.getElementById('dept');
+                if (json.data && json.data.length > 0) {
+                    json.data.forEach(dept => {
+                        const option = document.createElement('option');
+                        option.value = dept.name;
+                        option.innerText = dept.name;
+                        select.appendChild(option);
+                    });
+                } else {
+                    // Fallback if no data
+                    const depts = ['IT', 'HR', 'Admin', 'Sales', 'Accounting'];
+                    depts.forEach(d => {
+                        const option = document.createElement('option');
+                        option.value = d;
+                        option.innerText = d;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (err) { console.error('Error loading depts', err); }
+        }
 
         document.getElementById('ticketForm').addEventListener('submit', async (e) => {
             e.preventDefault();

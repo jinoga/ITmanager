@@ -82,6 +82,12 @@ function createTables() {
     db.run(`CREATE TABLE IF NOT EXISTS inventory (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, qty INTEGER DEFAULT 0, unit TEXT)`);
     db.run(`CREATE TABLE IF NOT EXISTS kb (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, category TEXT)`);
     db.run(`CREATE TABLE IF NOT EXISTS pm_schedule (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, due_date TEXT, status TEXT DEFAULT 'Pending')`);
+
+    // Master Data Tables
+    db.run(`CREATE TABLE IF NOT EXISTS master_technicians (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)`);
+    db.run(`CREATE TABLE IF NOT EXISTS master_vendors (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, contact TEXT)`);
+    db.run(`CREATE TABLE IF NOT EXISTS master_departments (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)`);
+    db.run(`CREATE TABLE IF NOT EXISTS master_branches (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)`);
 }
 
 // API to Initialize Tables (Run this once after deployment)
@@ -93,6 +99,13 @@ app.get('/api/setup', async (req, res) => {
             await db.query(`CREATE TABLE IF NOT EXISTS inventory (id SERIAL PRIMARY KEY, name TEXT, qty INTEGER DEFAULT 0, unit TEXT)`);
             await db.query(`CREATE TABLE IF NOT EXISTS kb (id SERIAL PRIMARY KEY, title TEXT, content TEXT, category TEXT)`);
             await db.query(`CREATE TABLE IF NOT EXISTS pm_schedule (id SERIAL PRIMARY KEY, title TEXT, due_date TEXT, status TEXT DEFAULT 'Pending')`);
+
+            // Master Data (Postgres)
+            await db.query(`CREATE TABLE IF NOT EXISTS master_technicians (id SERIAL PRIMARY KEY, name TEXT)`);
+            await db.query(`CREATE TABLE IF NOT EXISTS master_vendors (id SERIAL PRIMARY KEY, name TEXT, contact TEXT)`);
+            await db.query(`CREATE TABLE IF NOT EXISTS master_departments (id SERIAL PRIMARY KEY, name TEXT)`);
+            await db.query(`CREATE TABLE IF NOT EXISTS master_branches (id SERIAL PRIMARY KEY, name TEXT)`);
+
             res.json({ message: "Postgres Tables Created" });
         } else {
             createTables();
@@ -238,6 +251,43 @@ app.patch('/api/pm/:id', async (req, res) => {
         await runQuery("UPDATE pm_schedule SET status = ? WHERE id = ?", [status, req.params.id]);
         res.json({ message: "updated" });
     } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// --- 5. MASTER DATA API Helpers ---
+const masterTables = ['technicians', 'vendors', 'departments', 'branches'];
+
+masterTables.forEach(table => {
+    const tableName = `master_${table}`;
+
+    // GET
+    app.get(`/api/master/${table}`, async (req, res) => {
+        try {
+            const rows = await getAll(`SELECT * FROM ${tableName} ORDER BY id DESC`);
+            res.json({ data: rows });
+        } catch (err) { res.status(500).json({ error: err.message }); }
+    });
+
+    // POST
+    app.post(`/api/master/${table}`, async (req, res) => {
+        const { name, extra } = req.body; // extra can be contact info, etc.
+        try {
+            const sql = isPostgres
+                ? `INSERT INTO ${tableName} (name${table === 'vendors' ? ', contact' : ''}) VALUES (?${table === 'vendors' ? ',?' : ''}) RETURNING id`
+                : `INSERT INTO ${tableName} (name${table === 'vendors' ? ', contact' : ''}) VALUES (?${table === 'vendors' ? ',?' : ''})`;
+
+            const params = table === 'vendors' ? [name, extra] : [name];
+            const result = await runQuery(sql, params);
+            res.json({ message: "success", id: result.id });
+        } catch (err) { res.status(500).json({ error: err.message }); }
+    });
+
+    // DELETE
+    app.delete(`/api/master/${table}/:id`, async (req, res) => {
+        try {
+            await runQuery(`DELETE FROM ${tableName} WHERE id = ?`, [req.params.id]);
+            res.json({ message: "deleted" });
+        } catch (err) { res.status(500).json({ error: err.message }); }
+    });
 });
 
 // Fallback for SPA routing if needed
